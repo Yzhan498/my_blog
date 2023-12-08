@@ -1,4 +1,4 @@
-# post_service.py
+ # post_service.py
 
 from flask import Flask, jsonify
 import requests
@@ -15,7 +15,7 @@ def post(id):
     
     # Get user info from User Service
     if post_info:
-        response = requests.get(f'http://localhost:5000/user/{post_info["user_id"]}')
+        response = requests.get(f'https://userservicey.azurewebsites.net/user/{post_info["user_id"]}')
         if response.status_code == 200:
             post_info['user'] = response.json()
 
