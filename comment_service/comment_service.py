@@ -1,33 +1,58 @@
 # comment_service.py
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import requests
-import sqlite3
-conn = sqlite3.connect(':memory:')
 
 app = Flask(__name__)
 
-#define list comments
-comments = [{'comment_id': 1, 'user_id': 1, 'comment': 'Amazing comment!'}, {'comment_id': 2, 'user_id': 2, 'comment': 'Amazing comment!'}]
+# Mock in-memory data store
+comments = {
+    1: {
+        "id": 1,
+        "text": "Amazing comment!",
+        "user_id": 1,
+        "post_id": 2
+    },
+    2: {
+        "id": 2,
+        "text": "I did not know that!",
+        "user_id": 2,
+        "post_id": 2
+    },
+}
 
-@app.route('/comment/<int:id>')
-def comment(id):
-    filtered_comment = [comment for comment in comments if comment['comment_id'] == id]
-    comment_info = None
-    if len(filtered_comment) > 0: 
-        comment_info =  filtered_comment[0]
-
-# Get comment info from User Service and Post Service
-    if comment_info:
-        response = requests.get(f'http://userservicey.azurewebsites.net/user/{comment_info["user_id"]},postserviceying.azurewebsites.net/post/{comment_info["comment_id"]}')
-        if response.status_code == 200:
-            comment_info['comment_id']=response.json()
-
-    return jsonify(comment_info)
+# Endpoint to retrieve comment information
+@app.route('/comment/<int:comment_id>', methods=['GET'])
+def get_comment(comment_id):
+    if comment_id not in comments:
+        return jsonify({"message": "Comment not found"}), 404
+    
+    comment = comments[comment_id]
+    
+    # Fetch user details from user_service
+    user_id = comment["user_id"]
+    user_response = requests.get(f'http://userservicey.azurewebsites.net/users/{user_id}')
+    if user_response.status_code != 200:
+        return jsonify({"message": "User not found"}), 404
+    user_details = user_response.json()
+    
+    # Fetch post details from post_service
+    post_id = comment["post_id"]
+    post_response = requests.get(f'http://postservicey.azurewebsites.net/post/{post_id}')
+    if post_response.status_code != 200:
+        return jsonify({"message": "Post not found"}), 404
+    post_details = post_response.json()
+    
+    # Combine comment, user, and post details into a JSON response
+    comment_info = {
+        "comment": comment,
+        "user": user_details,
+        "post": post_details
+    }
+    
+    return jsonify(comment_info), 200
 
 if __name__ == '__main__':
-    app.run(port=5002)
-
-
+    app.run(debug=True)  # Replace with your production settings
 
 
